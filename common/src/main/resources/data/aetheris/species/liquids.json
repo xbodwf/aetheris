@@ -1,0 +1,45 @@
+{
+  "format": "aetheris:species/v1",
+  "comment": "Liquids whose whole point is how thick they are. Viscosity drives flow rate (see Viscosity), so these exist to make 'different solutions flow differently' visible: water is 0.89 mPa*s, ethylene glycol 16, sulfuric acid 25, glycerol 1412 - a factor of 1600 between the ends. Thermochemistry is literature data at 298.15 K; 'viscosity' is dynamic viscosity in mPa*s (numerically centipoise), and 'molarVolume' is m^3/mol from the measured density.",
+  "species": [
+    {
+      "id": "aetheris:glycerol",
+      "name": "Glycerol",
+      "formula": "C3H8O3",
+      "smiles": "OCC(O)CO",
+      "phase": "LIQUID",
+      "hf": -668600.0,
+      "cp": 218.9,
+      "s": 206.3,
+      "solvent": "water",
+      "viscosity": 1412.0,
+      "molarVolume": 7.303e-5
+    },
+    {
+      "id": "aetheris:ethylene_glycol",
+      "name": "Ethylene glycol",
+      "formula": "C2H6O2",
+      "smiles": "OCCO",
+      "phase": "LIQUID",
+      "hf": -455300.0,
+      "cp": 149.8,
+      "s": 166.9,
+      "solvent": "water",
+      "viscosity": 16.1,
+      "molarVolume": 5.575e-5
+    },
+    {
+      "id": "aetheris:sulfuric_acid",
+      "name": "Sulfuric acid",
+      "formula": "H2SO4",
+      "smiles": "OS(=O)(=O)O",
+      "phase": "LIQUID",
+      "hf": -814000.0,
+      "cp": 138.9,
+      "s": 156.9,
+      "solvent": "water",
+      "viscosity": 24.6,
+      "molarVolume": 5.359e-5
+    }
+  ]
+}

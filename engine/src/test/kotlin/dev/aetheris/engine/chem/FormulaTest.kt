@@ -111,6 +111,24 @@ class FormulaTest {
     }
 
     @Test
+    fun `pretty form uses subscripts and superscripts`() {
+        assertEquals("H₂O", Formula.parse("H2O").pretty())
+        assertEquals("C₆H₁₂O₆", Formula.parse("C6H12O6").pretty())
+        assertEquals("Na⁺", Formula.parse("Na^+").pretty())
+        assertEquals("OH⁻", Formula.parse("OH^-").pretty())
+        assertEquals("Cu²⁺", Formula.parse("Cu^2+").pretty())
+        assertEquals("Fe³⁺", Formula.parse("Fe^3+").pretty())
+        assertEquals("SO₄²⁻", Formula.parse("SO4^2-").pretty())
+
+        // Grouping is not retained, so the pretty form flattens it too - right composition, wrong shorthand.
+        assertEquals("CaO₂H₂", Formula.parse("Ca(OH)2").pretty())
+
+        // The machine-readable form is untouched, so it still round-trips through the parser.
+        assertEquals("Cu^2+", Formula.parse("Cu^2+").toString())
+        assertEquals("SO4^2-", Formula.parse("SO4^2-").toString())
+    }
+
+    @Test
     fun `elements table is complete and ordered`() {
         assertEquals(118, Elements.size)
         assertEquals(6, Elements.require("C").atomicNumber)

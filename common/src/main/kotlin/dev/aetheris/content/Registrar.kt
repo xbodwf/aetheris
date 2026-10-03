@@ -9,6 +9,7 @@ import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.material.Fluid
 import java.util.function.Supplier
 
 /**
@@ -24,6 +25,9 @@ interface Registrar {
 
     fun item(name: String, properties: Item.Properties): Supplier<Item>
 
+    /** Registers an [Item] of a specific class, such as a piece of armour. */
+    fun item(name: String, properties: Item.Properties, factory: (Item.Properties) -> Item): Supplier<Item>
+
     fun block(name: String, properties: BlockBehaviour.Properties): Supplier<Block>
 
     /** Registers a block of a specific class (e.g. one with a block entity). */
@@ -35,6 +39,16 @@ interface Registrar {
 
     /** Registers a [Item] that places [block]; the block itself is registered separately. */
     fun blockItem(name: String, block: Supplier<Block>, properties: Item.Properties): Supplier<Item>
+
+    /**
+     * Registers a [Fluid].
+     *
+     * Unlike the rest of this interface, this one takes the instance instead of returning a supplier
+     * that produced it. The block carrying the fluid needs that very object in its constructor, and on
+     * NeoForge a deferred holder cannot be resolved that early - so both sides share one eagerly created
+     * instance, exactly as vanilla shares `Fluids.WATER` between its fluid and its `LiquidBlock`.
+     */
+    fun fluid(name: String, fluid: Fluid): Supplier<Fluid>
 
     /**
      * Registers a [BlockEntityType] for the given [blocks].

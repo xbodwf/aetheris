@@ -13,6 +13,7 @@ import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.material.Fluid
 import net.neoforged.bus.api.IEventBus
 import net.neoforged.neoforge.registries.DeferredRegister
 import java.util.function.Supplier
@@ -27,16 +28,24 @@ class NeoForgeRegistrar(eventBus: IEventBus) : Registrar {
     private val blocks = DeferredRegister.create(Registries.BLOCK, Aetheris.MOD_ID)
     private val blockEntities = DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, Aetheris.MOD_ID)
     private val tabs = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, Aetheris.MOD_ID)
+    private val fluids = DeferredRegister.create(Registries.FLUID, Aetheris.MOD_ID)
 
     init {
         items.register(eventBus)
         blocks.register(eventBus)
         blockEntities.register(eventBus)
         tabs.register(eventBus)
+        fluids.register(eventBus)
     }
 
     override fun item(name: String, properties: Item.Properties): Supplier<Item> =
         items.register(name, Supplier { Item(properties) })
+
+    override fun item(
+        name: String,
+        properties: Item.Properties,
+        factory: (Item.Properties) -> Item,
+    ): Supplier<Item> = items.register(name, Supplier { factory(properties) })
 
     override fun block(name: String, properties: BlockBehaviour.Properties): Supplier<Block> =
         blocks.register(name, Supplier { Block(properties) })
@@ -52,6 +61,9 @@ class NeoForgeRegistrar(eventBus: IEventBus) : Registrar {
         block: Supplier<Block>,
         properties: Item.Properties,
     ): Supplier<Item> = items.register(name, Supplier { BlockItem(block.get(), properties) })
+
+    override fun fluid(name: String, fluid: Fluid): Supplier<Fluid> =
+        fluids.register(name, Supplier { fluid })
 
     override fun <T : BlockEntity> blockEntity(
         name: String,

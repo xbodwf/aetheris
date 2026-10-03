@@ -3,6 +3,17 @@
   "item.aetheris.test_tube": "Test Tube",
   "item.aetheris.beaker": "Beaker",
   "item.aetheris.glass_rod": "Glass Rod",
+  "item.aetheris.chemists_goggles": "Chemist's Goggles",
+  "item.aetheris.solution_bucket": "Bucket of Solution",
   "block.aetheris.conduit": "Conduit",
-  "block.aetheris.solution": "Solution"
+  "block.aetheris.solution": "Solution",
+  "aetheris.readout.empty": "no solutes",
+  "aetheris.readout.molarity": "%s mol/L",
+  "aetheris.readout.moles": "%s mol",
+  "aetheris.goggles.footer": "%s K - %s%% full",
+  "aetheris.bucket.rust": "%s%% corroded",
+  "aetheris.tube.capacity": "holds %s mB",
+  "aetheris.tube.shake": "Shift+use to shake",
+  "aetheris.tube.agitate.nothing": "Shaking crystallised nothing",
+  "aetheris.tube.agitate.formed": "Shaking crystallised %s"
 }

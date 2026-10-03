@@ -50,6 +50,23 @@ data class SpeciesRecord(
     /** Explicit molar volume in m^3/mol; 0 = estimate from the phase. */
     val molarVolumeM3: Double = 0.0,
     val nasa7: Nasa7? = null,
+    /**
+     * Structural notation, when the substance's connectivity is known.
+     *
+     * Optional because most of the catalogue is inorganic: a formula is enough for an ion or a
+     * mineral. It matters for organics, where `C2H6O` is ambiguous between ethanol and dimethyl
+     * ether and only the structure says which functional groups are present.
+     */
+    val smiles: String? = null,
+    /**
+     * Dynamic viscosity in **millipascal-seconds** (numerically the same as the centipoise a chemistry
+     * table quotes), or 0 when unknown.
+     *
+     * The unit is mPa*s on disk because that is how viscosity is tabulated in practice, which keeps
+     * transcription from a reference free of factor-of-a-thousand mistakes; [Species] converts it to
+     * the SI Pa*s the engine works in.
+     */
+    val viscosity: Double = 0.0,
 )
 
 /**
@@ -63,8 +80,8 @@ data class SpeciesRecord(
  * {
  *   "format": "aetheris:species/v1",
  *   "species": [
- *     { "id": "aetheris:methane", "name": "Methane", "formula": "CH4", "phase": "GAS",
- *       "hf": -74810.0, "cp": 35.69, "s": 186.25,
+ *     { "id": "aetheris:methane", "name": "Methane", "formula": "CH4", "smiles": "C",
+ *       "phase": "GAS", "hf": -74810.0, "cp": 35.69, "s": 186.25,
  *       "nasa7": { "tRanges": [200, 1000, 6000], "low": [...7], "high": [...7] } }
  *   ]
  * }
@@ -73,6 +90,9 @@ data class SpeciesRecord(
 object SpeciesCodec {
 
     const val FORMAT = "aetheris:species/v1"
+
+    /** One millipascal-second in pascal-seconds: viscosity is stored in the former, used in the latter. */
+    private const val MILLIPASCAL_SECONDS = 1.0e-3
 
     /** Parses a data file into records without touching any registry. */
     fun parse(json: String): List<SpeciesRecord> {
@@ -109,6 +129,8 @@ object SpeciesCodec {
                     color = record.color,
                     solventGroup = record.solventGroup,
                     molarVolumeM3 = record.molarVolumeM3,
+                    smiles = record.smiles,
+                    viscosityPaS = record.viscosity * MILLIPASCAL_SECONDS,
                 )
             )
         }
@@ -123,6 +145,7 @@ object SpeciesCodec {
             o.addProperty("id", record.id)
             o.addProperty("name", record.name)
             o.addProperty("formula", record.formula)
+            record.smiles?.let { o.addProperty("smiles", it) }
             o.addProperty("phase", record.phase.name)
             o.addProperty("hf", record.formationEnthalpy)
             o.addProperty("cp", record.heatCapacity)
@@ -131,6 +154,7 @@ object SpeciesCodec {
                 o.addProperty("color", "#%06X".format(record.color and 0xFFFFFF))
             }
             record.solventGroup?.let { o.addProperty("solvent", it) }
+            if (record.viscosity != 0.0) o.addProperty("viscosity", record.viscosity)
             if (record.molarVolumeM3 != 0.0) o.addProperty("molarVolume", record.molarVolumeM3)
             record.nasa7?.let { n ->
                 val n7 = JsonObject()
@@ -171,7 +195,12 @@ object SpeciesCodec {
         val solventGroup = o.get("solvent")?.asString
         val molarVolume = o.get("molarVolume")?.asDouble ?: 0.0
         val nasa7 = o.getAsJsonObject("nasa7")?.let { parseNasa7(it, id) }
-        return SpeciesRecord(id, name, formula, phase, hf, cp, entropy, color, solventGroup, molarVolume, nasa7)
+        val smiles = o.get("smiles")?.asString
+        val viscosity = o.get("viscosity")?.asDouble ?: 0.0
+        return SpeciesRecord(
+            id, name, formula, phase, hf, cp, entropy, color, solventGroup, molarVolume, nasa7,
+            smiles, viscosity,
+        )
     }
 
     /** Parses "#RRGGBB" (opaque) or "#AARRGGBB" into a packed ARGB int. */

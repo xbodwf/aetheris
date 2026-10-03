@@ -216,6 +216,46 @@ class Mixture(
     /** Cell-average density, kg/m^3. */
     fun averageDensity(): Double = mass() / volume
 
+    // --- Viscosity (what flow rate reads) ------------------------------------------------
+
+    /**
+     * Dynamic viscosity of this cell's liquid, Pa*s, or `null` when no liquid species declares one.
+     *
+     * All liquid phases are pooled into a single body. Strictly, immiscible layers each have their own
+     * viscosity and it is the continuous phase that governs how the cell drains; deciding that needs
+     * the layering to be modelled first, so for now the mixture rule sees one liquid. Ions and other
+     * solutes without a tabulated viscosity are excluded rather than assumed, which leaves a salt
+     * solution flowing like water - the Jones-Dole correction that would fix that is a later refinement.
+     */
+    fun liquidViscosity(): Double? {
+        var liquidMoles = 0.0
+        for (phase in phases.values) {
+            if (phase.kind == PhaseKind.LIQUID) liquidMoles += phase.totalMoles()
+        }
+        if (liquidMoles <= 0.0) return null
+
+        val components = ArrayList<Pair<Double, Double>>()
+        for (phase in phases.values) {
+            if (phase.kind != PhaseKind.LIQUID) continue
+            for (id in phase.speciesIds) {
+                val viscosity = registry.require(id).viscosityPaS
+                if (!Viscosity.isUsable(viscosity)) continue
+                components += (phase.amount(id) / liquidMoles) to viscosity
+            }
+        }
+        return Viscosity.mixture(components)
+    }
+
+    /**
+     * How fast this cell's liquid moves, as a multiple of water's rate.
+     *
+     * This is a *rate in spreading steps per second*, not a fraction, so it can exceed one for a thin
+     * liquid and fall far below one for a thick one. Cells with no liquid, or with no viscosity data
+     * at all, report water's rate: assuming a substance is as mobile as water is the least surprising
+     * default, and it keeps every species that has not been characterised behaving as it did before.
+     */
+    fun flowScale(): Double = liquidViscosity()?.let { Viscosity.flowScale(it) } ?: 1.0
+
     // --- Colour (what a solution looks like) ---------------------------------------------
 
     /**
@@ -261,17 +301,41 @@ class Mixture(
         (255.0 + (channel - 255.0) * saturation).roundToInt().coerceIn(0, 255)
 
     /**
-     * The volume a reaction's kinetics act over: the gas headspace if any participant is gaseous,
-     * otherwise the volume of the phase holding the participants (reactants or products, so a
-     * reverse reaction is sized correctly too). This turns a rate per unit volume into a rate in
-     * mol/s without pretending a condensed reaction fills the whole cell.
+     * The volume a reaction's kinetics act over: the solution if any participant is dissolved in one,
+     * otherwise the gas headspace, otherwise the volume of whichever phase holds a participant, otherwise the
+     * whole cell. This turns a rate per unit volume into a rate in mol/s without pretending a condensed
+     * reaction fills the whole cell.
+     *
+     * **The solution comes first, and that ordering is load-bearing.** Iron dissolving in acid makes hydrogen
+     * - a gaseous *product* - and an earlier version asked "is any participant a gas?" and answered by sizing
+     * the rate against the headspace. In a brim-full cell that headspace is nearly nothing, while the driving
+     * term is a real concentration of 1000 mol/m^3 squared, so the whole litre of acid was consumed in a
+     * single step: a bucket of hydrochloric acid became iron(II) chloride instantly instead of over a minute.
+     * A gaseous product does not move a reaction into the gas phase. The reaction happens at the metal's
+     * surface, in the solution, and the hydrogen merely leaves - which is [reactionVolume]'s job to respect.
+     *
+     * Products are consulted as well as reactants, which is what lets a reverse reaction (starting from the
+     * product side) size its rate by the solution it actually runs in rather than falling back to the cell.
      */
     fun reactionVolume(reaction: Reaction): Double {
         val participants = reaction.reactants.keys + reaction.products.keys
+
+        // A participant in a liquid phase means this is a solution reaction, wherever the other participants
+        // are: a dissolving solid, a bubbling product, or an ion.
+        for (id in participants) {
+            val phase = phaseOf(id) ?: continue
+            if (phase.kind == PhaseKind.LIQUID) return phaseVolume(phase)
+        }
+        // An aqueous participant that is not present *yet* still makes this a solution reaction. A lump of
+        // chalk dropped into water dissolves into the water that is there, not into the chalk, so the rate is
+        // sized by the solvent rather than by the lump - without this, how fast a solid dissolves would depend
+        // on how big the piece of it happened to be, which is not chemistry anybody would recognise.
+        if (participants.any { registry.require(it).phase == Phase.AQUEOUS }) {
+            val solvent = speciesIds.firstOrNull { registry.require(it).phase == Phase.LIQUID }
+            val phase = solvent?.let { phaseOf(it) }
+            if (phase != null) return phaseVolume(phase)
+        }
         if (participants.any { registry.require(it).phase == Phase.GAS }) return gasVolume()
-        // Prefer any participant that currently has a phase. Looking at products as well as
-        // reactants is what lets a reverse reaction (which starts from the product side) size
-        // its rate by the solution it actually runs in, rather than falling back to the cell.
         for (id in participants) {
             val phase = phaseOf(id) ?: continue
             return phaseVolume(phase)
@@ -305,6 +369,67 @@ class Mixture(
     fun charge(): Double = speciesIds.sumOf { amount(it) * registry.require(it).formula.charge }
 
     fun copy(): Mixture = Mixture(registry, volume, temperature, snapshot())
+
+    /**
+     * Removes up to [sampleVolume] of condensed matter and returns it as a cell of its own, or `null` when
+     * there is nothing to take.
+     *
+     * The sample takes the *same fraction of every species*, which is what makes it a sample rather than a
+     * partial separation: its concentration is identical to the source's, and so is the source's
+     * afterwards. Its cell volume is set to the matter it holds, so it reads as a full cell and can be
+     * poured or carried without a shrink factor to remember. This is the maths a pipette or a test tube
+     * needs, and it lives here so it can be tested without a game.
+     */
+    fun takeSample(sampleVolume: Double): Mixture? {
+        require(sampleVolume > 0.0) { "Sample volume must be positive (was $sampleVolume)" }
+        val available = condensedVolume()
+        if (available <= 0.0) return null
+        val fraction = minOf(1.0, sampleVolume / available)
+        val sample = Mixture(registry, maxOf(fraction * available, 1e-9), temperature)
+        for (id in speciesIds.toList()) {
+            val taken = amount(id) * fraction
+            if (taken <= 0.0) continue
+            sample.add(id, taken)
+            add(id, -taken)
+        }
+        return sample
+    }
+
+    /** Absorbs every species of [other] into this cell. Volume and temperature are left alone, so the
+     * added matter dilutes this cell rather than resizing it. */
+    fun absorb(other: Mixture) {
+        for (id in other.speciesIds) add(id, other.amount(id))
+    }
+
+    /**
+     * Removes every gas, returning what left.
+     *
+     * This is the **open-vessel rule**, and it is why a bucket of acid does not end up holding hydrogen: a
+     * bucket is a bucket, not a pressure vessel, and a gas the atmosphere does not contain simply bubbles out.
+     * Without it the iron dissolving in a litre of acid left half a mole of H2 sitting in the solution, which
+     * the goggles and the tooltip then reported as a dissolved solute - some six hundred times what water can
+     * actually hold, and about twelve bar if it were real.
+     *
+     * The general form of this is "hold each gas at its atmospheric partial pressure and vent the excess",
+     * which needs the atmosphere's composition. The atmosphere model has a total pressure and no composition
+     * yet, so this is the honest degenerate case: for a gas the air does not contain, the partial pressure to
+     * hold it at is zero.
+     *
+     * Deliberately not called by [Mixture] itself. A mixture that is *meant* to be sealed - a gas-phase cell, a
+     * future pressure vessel - has to be able to keep its gases, so the choice belongs to the caller: see the
+     * solution cell and the bucket.
+     */
+    fun ventGases(): Map<String, Double> {
+        val leaving = LinkedHashMap<String, Double>()
+        for (id in speciesIds.toList()) {
+            if (registry.require(id).phase != Phase.GAS) continue
+            val amount = amount(id)
+            if (amount <= 0.0) continue
+            leaving[id] = amount
+            set(id, 0.0)
+        }
+        return leaving
+    }
 
     override fun toString(): String =
         "Mixture(V=${volume}m^3, T=${"%.1f".format(temperature)}K, phases=${phaseStates})"

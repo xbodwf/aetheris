@@ -129,6 +129,10 @@ class ReactionEngine(
      *
      * Note these use the dimensionless [Mixture.standardActivity] (molarity in mol/L, p/P0),
      * the same convention as K, rather than the dimensional activity the one-way path uses.
+     *
+     * The forward term is also where nucleation applies, and only there: the barrier is the cost of *creating* a
+     * condensed phase, so it is a gate on the direction that makes one and has nothing to say about a solid
+     * dissolving. See [Nucleation].
      */
     private fun reversibleExtent(reaction: Reaction, mixture: Mixture, volume: Double, dt: Double): Double {
         val temperature = mixture.temperature
@@ -137,11 +141,39 @@ class ReactionEngine(
         val equilibrium = reaction.equilibriumConstant(registry, temperature)
         val kReverse = if (equilibrium > 0.0 && equilibrium.isFinite()) kForward / equilibrium else 0.0
 
-        val forward = kForward * sideDriving(reaction.reactants, mixture) * volume
+        val nucleating = nucleationFactor(reaction, mixture, equilibrium, temperature)
+        val forward = kForward * nucleating * sideDriving(reaction.reactants, mixture) * volume
         val reverse = kReverse * sideDriving(reaction.products, mixture) * volume
         val forwardLimit = reaction.limitingExtent(reaction.reactants, mixture)
         val reverseLimit = reaction.limitingExtent(reaction.products, mixture)
         return ((forward - reverse) * dt).coerceIn(-reverseLimit, forwardLimit)
+    }
+
+    /**
+     * How much of the forward rate nucleation allows: 1.0 unless this reaction is *creating* a solid that is not
+     * there yet.
+     *
+     * Any of the solid already present means there is a surface to grow on, and growth clears no barrier - which
+     * is exactly why dropping a seed crystal into a metastable solution precipitates it at once.
+     *
+     * The supersaturation ratio is the **ion product over the solubility product**, and the reaction's own K is
+     * `1/Ksp`, so it is `Q * K` rather than `Q / K`. Dividing instead multiplies by Ksp squared - about 1e-16 for
+     * calcite - which puts every solution far *below* saturation and lets the barrier wave everything through.
+     * That is a mistake worth naming, because it fails silently in the direction of "precipitation always
+     * happens", which is exactly what the barrier was added to stop.
+     */
+    private fun nucleationFactor(
+        reaction: Reaction,
+        mixture: Mixture,
+        equilibrium: Double,
+        temperature: Double,
+    ): Double {
+        if (equilibrium <= 0.0 || !equilibrium.isFinite()) return 1.0
+        val solid = reaction.products.keys.firstOrNull { registry.require(it).phase == Phase.SOLID }
+            ?: return 1.0
+        if (mixture.amount(solid) > 0.0) return 1.0
+        val supersaturation = sideDriving(reaction.reactants, mixture) * equilibrium
+        return Nucleation.factor(supersaturation, registry.require(solid).molarVolume, temperature)
     }
 
     /** Product of standard activities raised to their coefficients; 0 if any is absent. */
@@ -155,6 +187,34 @@ class ReactionEngine(
         return driving
     }
 
+    /**
+     * Gives a metastable solution something to crystallise on, and reports what took.
+     *
+     * This is agitation, a scratch on the glass, a speck of dust - anything that supplies a surface. The physics
+     * is [Nucleation]'s: the barrier is the cost of *creating* a phase, and a surface skips it entirely, so the
+     * honest model of shaking a tube is to put a seed in it. One mole in a billion is enough to stop being
+     * nucleation and start being growth.
+     *
+     * Only reactions whose solid is **absent** are considered, and only where the solution is actually
+     * supersaturated - agitating a solution with nothing to give would be theatre.
+     */
+    fun seed(mixture: Mixture): List<String> {
+        val formed = ArrayList<String>()
+        for (reaction in reactions) {
+            if (!reaction.reversible) continue
+            val solid = reaction.products.keys.firstOrNull { registry.require(it).phase == Phase.SOLID }
+                ?: continue
+            if (mixture.amount(solid) > 0.0) continue
+            val equilibrium = reaction.equilibriumConstant(registry, mixture.temperature)
+            if (equilibrium <= 0.0 || !equilibrium.isFinite()) continue
+            val supersaturation = sideDriving(reaction.reactants, mixture) * equilibrium
+            if (supersaturation <= 1.0) continue
+            mixture.add(solid, SEED_MOLES)
+            formed += solid
+        }
+        return formed
+    }
+
     /** Runs [steps] steps of [dt] seconds, returning every report. */
     fun simulate(mixture: Mixture, dt: Double, steps: Int): List<StepReport> {
         require(steps >= 0) { "steps must be non-negative (was $steps)" }
@@ -162,4 +222,15 @@ class ReactionEngine(
     }
 
     fun reaction(id: String): Reaction? = reactionsById[id]
+
+    private companion object {
+        /**
+         * A seed's worth: a billionth of a mole.
+         *
+         * Small enough to be invisible in any readout and in the fill fraction, and large enough that the next
+         * step sees `amount(solid) > 0` and stops applying a nucleation barrier. Anything larger would be adding
+         * matter rather than merely giving it somewhere to form.
+         */
+        const val SEED_MOLES = 1.0e-9
+    }
 }

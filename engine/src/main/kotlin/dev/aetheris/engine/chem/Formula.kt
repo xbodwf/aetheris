@@ -57,7 +57,42 @@ class Formula internal constructor(
         return sb.toString()
     }
 
+    /**
+     * The formula written the way a chemist reads it: `Cu^2+` becomes `Cu²⁺`, `SO4^2-` becomes `SO₄²⁻`.
+     *
+     * [toString] stays machine-readable - it round-trips through the parser - so this is a separate
+     * rendering rather than a change to that one. Superscript and subscript digits are ordinary Unicode,
+     * which the game's font already falls back to for.
+     *
+     * Grouping is not reconstructed, because it is not retained: `Ca(OH)2` parses to a flat count and
+     * prints as `CaO₂H₂`. That is still the right composition, just not the shorthand.
+     */
+    fun pretty(): String {
+        val sb = StringBuilder()
+        for ((symbol, n) in counts) {
+            sb.append(symbol)
+            if (n != 1) sb.append(subscript(n))
+        }
+        if (charge != 0) {
+            val magnitude = kotlin.math.abs(charge)
+            if (magnitude != 1) sb.append(superscript(magnitude))
+            sb.append(if (charge > 0) SUPERSCRIPT_PLUS else SUPERSCRIPT_MINUS)
+        }
+        return sb.toString()
+    }
+
+    private fun subscript(value: Int): String = renderDigits(value, SUBSCRIPT_DIGITS)
+
+    private fun superscript(value: Int): String = renderDigits(value, SUPERSCRIPT_DIGITS)
+
+    private fun renderDigits(value: Int, table: String): String =
+        value.toString().map { table[it - '0'] }.joinToString("")
+
     companion object {
+        private const val SUBSCRIPT_DIGITS = "₀₁₂₃₄₅₆₇₈₉"
+        private const val SUPERSCRIPT_DIGITS = "⁰¹²³⁴⁵⁶⁷⁸⁹"
+        private const val SUPERSCRIPT_PLUS = '⁺'
+        private const val SUPERSCRIPT_MINUS = '⁻'
         fun of(vararg pairs: Pair<String, Int>): Formula = of(pairs.toMap(), 0)
 
         fun of(counts: Map<String, Int>, charge: Int = 0): Formula {

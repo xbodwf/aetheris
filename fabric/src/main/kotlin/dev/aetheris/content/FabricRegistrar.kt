@@ -14,6 +14,7 @@ import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.material.Fluid
 import java.util.function.Supplier
 
 /** Fabric adapter: its registries accept entries during mod init, so registration is immediate. */
@@ -21,6 +22,13 @@ class FabricRegistrar : Registrar {
 
     override fun item(name: String, properties: Item.Properties): Supplier<Item> =
         constant(Registry.register(BuiltInRegistries.ITEM, AetherisContent.id(name), Item(properties)))
+
+    override fun item(
+        name: String,
+        properties: Item.Properties,
+        factory: (Item.Properties) -> Item,
+    ): Supplier<Item> =
+        constant(Registry.register(BuiltInRegistries.ITEM, AetherisContent.id(name), factory(properties)))
 
     override fun block(name: String, properties: BlockBehaviour.Properties): Supplier<Block> =
         constant(Registry.register(BuiltInRegistries.BLOCK, AetherisContent.id(name), Block(properties)))
@@ -43,6 +51,9 @@ class FabricRegistrar : Registrar {
             BlockItem(block.get(), properties),
         ),
     )
+
+    override fun fluid(name: String, fluid: Fluid): Supplier<Fluid> =
+        constant(Registry.register(BuiltInRegistries.FLUID, AetherisContent.id(name), fluid))
 
     override fun <T : BlockEntity> blockEntity(
         name: String,

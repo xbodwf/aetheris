@@ -3,6 +3,17 @@
   "item.aetheris.test_tube": "试管",
   "item.aetheris.beaker": "烧杯",
   "item.aetheris.glass_rod": "玻璃棒",
+  "item.aetheris.chemists_goggles": "化学护目镜",
+  "item.aetheris.solution_bucket": "溶液桶",
   "block.aetheris.conduit": "导管",
-  "block.aetheris.solution": "溶液"
+  "block.aetheris.solution": "溶液",
+  "aetheris.readout.empty": "无溶质",
+  "aetheris.readout.molarity": "%s mol/L",
+  "aetheris.readout.moles": "%s mol",
+  "aetheris.goggles.footer": "%s K · 充填 %s%%",
+  "aetheris.bucket.rust": "腐蚀 %s%%",
+  "aetheris.tube.capacity": "容量 %s mB",
+  "aetheris.tube.shake": "Shift+右键 震荡",
+  "aetheris.tube.agitate.nothing": "震荡后什么也没析出",
+  "aetheris.tube.agitate.formed": "震荡后开始析出：%s"
 }

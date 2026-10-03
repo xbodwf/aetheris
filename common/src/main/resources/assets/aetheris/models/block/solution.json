@@ -1,20 +1,5 @@
 {
   "textures": {
-    "particle": "aetheris:block/solution",
-    "all": "aetheris:block/solution"
-  },
-  "elements": [
-    {
-      "from": [0, 0, 0],
-      "to": [16, 15, 16],
-      "faces": {
-        "down": { "texture": "#all", "tintindex": 0, "cullface": "down" },
-        "up": { "texture": "#all", "tintindex": 0 },
-        "north": { "texture": "#all", "tintindex": 0 },
-        "south": { "texture": "#all", "tintindex": 0 },
-        "west": { "texture": "#all", "tintindex": 0 },
-        "east": { "texture": "#all", "tintindex": 0 }
-      }
-    }
-  ]
+    "particle": "aetheris:block/solution_still"
+  }
 }

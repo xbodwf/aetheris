@@ -32,4 +32,53 @@ object SolutionNames {
         if (entries.isEmpty()) return "empty"
         return entries.joinToString(" + ") { "${it.formula} ${"%.3g".format(it.moles)} mol" }
     }
+
+    /**
+     * One readable line of a solution: what it is, how much of it, and how strong it is.
+     *
+     * [molarity] is the number a chemist actually reads off a bench; [moles] is what matters for what has
+     * settled out, since a solid has no meaningful concentration.
+     */
+    data class Reading(
+        val id: String,
+        /** Machine-readable, as the parser would accept it back. */
+        val formula: String,
+        /** The same formula with subscripts and superscripts, for showing to a person. */
+        val prettyFormula: String,
+        val phase: Phase,
+        val moles: Double,
+        /** mol/L inside the phase holding it, or 0 for anything that is not dissolved. */
+        val molarity: Double,
+        /** The species' own tint, or 0 when it has none, so a readout can colour its own lines. */
+        val color: Int,
+    )
+
+    /**
+     * The dissolved and settled contents of [mixture], largest first, with the numbers a readout needs.
+     *
+     * The solvent itself is dropped, and it is identified as *the largest liquid* rather than by name -
+     * which is what makes this work for a non-water medium too. Pure glycerol then reads as "nothing
+     * dissolved in it", which is the truth, instead of reporting the medium as if it were a solute.
+     */
+    fun readout(mixture: Mixture, limit: Int = 5): List<Reading> {
+        val everything = mixture.speciesIds.mapNotNull { id ->
+            val species = mixture.registry.require(id)
+            val moles = mixture.amount(id)
+            if (moles <= 1e-9) return@mapNotNull null
+            Reading(
+                id = id,
+                formula = species.formula.toString(),
+                prettyFormula = species.formula.pretty(),
+                phase = species.phase,
+                moles = moles,
+                molarity = mixture.molarity(id),
+                color = species.color,
+            )
+        }
+        val solvent = everything.filter { it.phase == Phase.LIQUID }.maxByOrNull { it.moles }?.id
+        return everything
+            .filter { it.id != solvent }
+            .sortedByDescending { it.moles }
+            .take(limit)
+    }
 }

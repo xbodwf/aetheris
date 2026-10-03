@@ -9,7 +9,8 @@
       "hf": -285830.0,
       "cp": 75.3,
       "s": 69.9,
-      "solvent": "water"
+      "solvent": "water",
+      "viscosity": 0.89
     },
     {
       "id": "aetheris:sodium_ion",
@@ -77,6 +78,53 @@
       "cp": 100.0,
       "s": 88.0,
       "color": "#3B7A57"
+    },
+    {
+      "id": "aetheris:hydrogen_ion",
+      "name": "Hydrogen ion",
+      "formula": "H^+",
+      "phase": "AQUEOUS",
+      "hf": 0.0,
+      "cp": 1.0,
+      "s": 0.0
+    },
+    {
+      "id": "aetheris:chloride_ion",
+      "name": "Chloride ion",
+      "formula": "Cl^-",
+      "phase": "AQUEOUS",
+      "hf": -167160.0,
+      "cp": 25.0,
+      "s": 56.5
+    },
+    {
+      "id": "aetheris:calcium_2_ion",
+      "name": "Calcium ion",
+      "formula": "Ca^2+",
+      "phase": "AQUEOUS",
+      "hf": -542830.0,
+      "cp": 25.0,
+      "s": -53.1
+    },
+    {
+      "id": "aetheris:carbonate_ion",
+      "name": "Carbonate ion",
+      "formula": "CO3^2-",
+      "phase": "AQUEOUS",
+      "hf": -677140.0,
+      "cp": 25.0,
+      "s": -56.9
+    },
+    {
+      "id": "aetheris:calcium_carbonate",
+      "name": "Calcium carbonate",
+      "formula": "CaCO3",
+      "phase": "SOLID",
+      "hf": -1206900.0,
+      "cp": 81.9,
+      "s": 92.9,
+      "color": "#EDE9DC",
+      "molarVolume": 3.69e-5
     }
   ]
 }
