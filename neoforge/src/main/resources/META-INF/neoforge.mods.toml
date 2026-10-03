@@ -1,0 +1,30 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "GPL-3.0"
+
+[[mods]]
+modId = "aetheris"
+version = "${version}"
+displayName = "Aetheris"
+authors = "xbodwf"
+logoFile = "icon.png"
+description = '''
+A real gas and chemistry simulation engine for Minecraft.
+'''
+
+[[mixins]]
+config = "aetheris.neoforge.mixins.json"
+
+[[dependencies.aetheris]]
+modId = "neoforge"
+mandatory = true
+versionRange = "[21,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.aetheris]]
+modId = "minecraft"
+mandatory = true
+versionRange = "[1.21.1,)"
+ordering = "NONE"
+side = "BOTH"

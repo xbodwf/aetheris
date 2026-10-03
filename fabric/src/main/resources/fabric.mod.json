@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "aetheris",
+  "version": "${version}",
+  "name": "Aetheris",
+  "description": "A real gas and chemistry simulation engine for Minecraft.",
+  "authors": ["xbodwf"],
+  "license": "GPL-3.0",
+  "icon": "icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["dev.aetheris.AetherisFabric"],
+    "client": ["dev.aetheris.client.AetherisFabricClient"]
+  },
+  "mixins": ["aetheris.fabric.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.16.10",
+    "fabric": "*",
+    "fabric-language-kotlin": ">=1.12.0",
+    "minecraft": "~1.21.1",
+    "java": ">=21"
+  }
+}

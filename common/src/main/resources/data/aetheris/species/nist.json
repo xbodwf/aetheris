@@ -1,0 +1,95 @@
+{
+  "format": "aetheris:species/v1",
+  "species": [
+    {
+      "id": "nist:calcium_oxide",
+      "name": "Calcium oxide",
+      "formula": "CaO",
+      "phase": "SOLID",
+      "hf": -634920.0,
+      "cp": 49.8,
+      "s": 38.1
+    },
+    {
+      "id": "nist:iron_3_oxide",
+      "name": "Iron(III) oxide (hematite)",
+      "formula": "Fe2O3",
+      "phase": "SOLID",
+      "hf": -825500.0,
+      "cp": 49.8,
+      "s": 0.0
+    },
+    {
+      "id": "nist:copper_2_hydroxide",
+      "name": "Copper(II) hydroxide",
+      "formula": "Cu(OH)2",
+      "phase": "SOLID",
+      "hf": -450370.0,
+      "cp": 74.7,
+      "s": 108.43
+    },
+    {
+      "id": "nist:silicon_dioxide",
+      "name": "Silicon dioxide (quartz)",
+      "formula": "SiO2",
+      "phase": "SOLID",
+      "hf": -910860.0,
+      "cp": 49.8,
+      "s": 0.0
+    },
+    {
+      "id": "nist:graphite",
+      "name": "Carbon (graphite)",
+      "formula": "C",
+      "phase": "SOLID",
+      "hf": 0.0,
+      "cp": 24.9,
+      "s": 5.6
+    },
+    {
+      "id": "nist:water_liquid",
+      "name": "Water",
+      "formula": "H2O",
+      "phase": "LIQUID",
+      "hf": -285830.0,
+      "cp": 49.8,
+      "s": 69.95
+    },
+    {
+      "id": "nist:aluminium",
+      "name": "Aluminium",
+      "formula": "Al",
+      "phase": "SOLID",
+      "hf": 0.0,
+      "cp": 24.9,
+      "s": 28.3
+    },
+    {
+      "id": "nist:iron",
+      "name": "Iron",
+      "formula": "Fe",
+      "phase": "SOLID",
+      "hf": 0.0,
+      "cp": 24.9,
+      "s": 0.0
+    },
+    {
+      "id": "nist:copper",
+      "name": "Copper",
+      "formula": "Cu",
+      "phase": "SOLID",
+      "hf": 0.0,
+      "cp": 24.9,
+      "s": 33.15
+    },
+    {
+      "id": "nist:zinc",
+      "name": "Zinc",
+      "formula": "Zn",
+      "phase": "SOLID",
+      "hf": 0.0,
+      "cp": 24.9,
+      "s": 41.63
+    }
+  ]
+}
